@@ -1,55 +1,36 @@
-# Simulador de Teoría de Colas (M/M/1) - Investigación Operativa II (UAGRM)
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-Aplicación web desarrollada con Next.js (App Router), React y Tailwind CSS para el cálculo y simulación de líneas de espera en un sistema unicanal (M/M/1), basada en la toma de datos de campo de una estación de servicio (Surtidor).
+## Getting Started
 
----
-
-## 🚀 Despliegue en Vercel
-
-El proyecto está 100% configurado para desplegarse en Vercel sin complicaciones.
-
-### Opción 1: Conectar con GitHub (Recomendado)
-1. Sube los cambios a tu repositorio de GitHub:
-   ```bash
-   git add .
-   git commit -m "Configuracion para Vercel"
-   git push origin main
-   ```
-2. Ve a [vercel.com](https://vercel.com/) e inicia sesión.
-3. Haz clic en **"Add New..."** > **"Project"**.
-4. Importa el repositorio **`IO2`**.
-5. Los ajustes están preconfigurados gracias a `vercel.json` y `package.json` en la raíz.
-   - *Nota:* Si Vercel te pide el **Root Directory**, puedes dejarlo en `./` o seleccionar `frontend` (ambas opciones funcionan correctamente).
-6. Haz clic en **"Deploy"**.
-
-### Opción 2: Desplegar desde la terminal con Vercel CLI
-```bash
-# 1. Iniciar sesión y previsualizar despliegue
-npx vercel
-
-# 2. Desplegar directamente a producción
-npx vercel --prod
-```
-
----
-
-## 🛠️ Ejecución Local
-
-Para correr el proyecto localmente en tu computadora:
+First, run the development server:
 
 ```bash
-# Desde la raíz del proyecto
 npm run dev
-
-# O entrando a la carpeta frontend
-cd frontend
-npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-Abre tu navegador en [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
----
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-## 👥 Integrantes
-- Juany Nicol Velasquez Carrillo
-- Jhamil Veliz Loayza
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
