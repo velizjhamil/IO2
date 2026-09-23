@@ -68,9 +68,9 @@ function resolveQueueSequence(raws: RawClient[]): ResolvedRow[] {
 }
 
 const TEAM_MEMBERS = [
-  "—", // 1er integrante pendiente
-  "Juany Nicol Velasquez Carrillo  ",
-  "Jhamil Veliz Loayza  ",
+  "1. Nose ", // 1er integrante pendiente
+  "2. Juany Nicol Velasquez Carrillo  ",
+  "3. Jhamil Veliz Loayza  ",
 ];
 
 export default function Home() {
