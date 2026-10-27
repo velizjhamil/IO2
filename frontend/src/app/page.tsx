@@ -1,39 +1,19 @@
 "use client";
 
-/**
- * Página principal — Calculadora de Teoría de Colas M/M/1.
- * Orquesta: formulario → tabla → resultados.
- *
- * Modelo de cálculo (sistema unicanal / M/M/1):
- *   - El usuario carga: { arrivalMinute, serviceTimeMin } por cliente.
- *   - Esta página hace el cálculo SECUENCIAL de esperas:
- *       serviceStart_i = max(arrival_i, departure_{i-1})
- *       departure_i    = serviceStart_i + serviceTime_i
- *   - Una vez que tenemos los 3 timestamps por fila, los transformamos a
- *     HH:mm:ss y los pasamos a processFieldRecords/calculateQueueMetrics,
- *     que ya están en src/lib/queueSimulation.ts.
- */
+/** Observed FIFO queue with a separate legacy manual-entry calculator. */
 import { useMemo, useState } from "react";
-
 import Navbar from "@/components/Navbar";
+import ObservedDashboard from "@/components/ObservedDashboard";
 import InputForm, { type NewClientInput } from "@/components/InputForm";
 import QueueTable from "@/components/QueueTable";
 import ResultsCard from "@/components/ResultsCard";
+import { minutesToTimeString, processFieldRecords, calculateQueueMetrics, type FieldRecord } from "@/lib/queueSimulation";
 
-import {
-  calculateQueueMetrics,
-  minutesToTimeString,
-  processFieldRecords,
-  type FieldRecord,
-} from "@/lib/queueSimulation";
-
-/** Entrada cruda que el usuario carga (2 valores numéricos). */
 type RawClient = {
   arrivalMinute: number;
   serviceTimeMin: number;
 };
 
-/** Una fila de la tabla con los 3 timestamps ya resueltos secuencialmente. */
 type ResolvedRow = {
   id: number;
   arrivalTime: string;
@@ -41,13 +21,9 @@ type ResolvedRow = {
   departureTime: string;
 };
 
-/**
- * Resuelve la secuencia de un sistema unicanal.
- * Para cada cliente: si llega antes de que el anterior salga, espera.
- */
 function resolveQueueSequence(raws: RawClient[]): ResolvedRow[] {
   const rows: ResolvedRow[] = [];
-  let serverAvailableAt = 0; // minutos desde 00:00 — el servidor arranca libre
+  let serverAvailableAt = 0;
 
   raws.forEach((raw, index) => {
     const arrival = raw.arrivalMinute;
@@ -68,24 +44,25 @@ function resolveQueueSequence(raws: RawClient[]): ResolvedRow[] {
 }
 
 const TEAM_MEMBERS = [
-  "1. Nose ", // 1er integrante pendiente
-  "2. Juany Nicol Velasquez Carrillo  ",
-  "3. Jhamil Veliz Loayza  ",
+  "1. Berthol Acosta Osorio",
+  "2. Juany Nicol Velasquez Carrillo",
+  "3. Jhamil Veliz Loayza",
 ];
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState<"observed" | "manual">("observed");
+
   const [raws, setRaws] = useState<RawClient[]>([]);
 
-  const handleAdd = (input: NewClientInput) => {
+  const handleAddManual = (input: NewClientInput) => {
     setRaws((prev) => [...prev, input]);
   };
 
-  const handleRemove = (id: number) => {
+  const handleRemoveManual = (id: number) => {
     setRaws((prev) => prev.filter((_, i) => i + 1 !== id));
   };
 
-  const handleLoadSample = () => {
-    // 12 clientes en horario pico.
+  const handleLoadSampleManual = () => {
     setRaws([
       { arrivalMinute: 0, serviceTimeMin: 2.5 },
       { arrivalMinute: 2, serviceTimeMin: 2.5 },
@@ -102,116 +79,97 @@ export default function Home() {
     ]);
   };
 
-  const handleClearAll = () => {
+  const handleClearAllManual = () => {
     setRaws([]);
   };
 
-  // 1) Resolución secuencial de esperas (2 inputs → 3 timestamps por fila).
-  const resolved = useMemo(() => resolveQueueSequence(raws), [raws]);
+  const resolvedManual = useMemo(() => resolveQueueSequence(raws), [raws]);
 
-  // 2) Conversión al formato que ya entiende processFieldRecords.
-  const fieldRecords: FieldRecord[] = useMemo(
+  const fieldRecordsManual: FieldRecord[] = useMemo(
     () =>
-      resolved.map((r) => ({
+      resolvedManual.map((r) => ({
         id: r.id,
         arrivalTime: r.arrivalTime,
         serviceStartTime: r.serviceStartTime,
         departureTime: r.departureTime,
       })),
-    [resolved],
+    [resolvedManual]
   );
 
-  // 3) Módulo de dominio: ya hace el resto (orden cronológico, métricas).
-  const processed = useMemo(
-    () => processFieldRecords(fieldRecords),
-    [fieldRecords],
+  const processedManual = useMemo(
+    () => processFieldRecords(fieldRecordsManual),
+    [fieldRecordsManual]
   );
 
-  const metrics = useMemo(
-    () => calculateQueueMetrics(processed),
-    [processed],
+  const metricsManual = useMemo(
+    () => calculateQueueMetrics(processedManual),
+    [processedManual]
   );
-
-  const nextClientNumber = raws.length + 1;
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-800">
       <Navbar />
 
       <main className="mx-auto max-w-6xl px-6 py-10 sm:py-14">
-        <header className="mb-10 max-w-2xl">
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-emerald-600">
-            Investigación Operativa II
-          </p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
-            Calculadora de Teoría de Colas
-            <span className="block text-zinc-500">Sistema Unicanal M/M/1</span>
-          </h1>
-          <p className="mt-4 text-sm leading-relaxed text-zinc-600">
-            Herramienta académica para simular un sistema de colas de un solo
-            servidor. Ingresá los datos de campo (minuto de llegada y tiempo
-            de servicio de cada cliente) y la calculadora resuelve la secuencia
-            de atención —incluyendo las esperas cuando un cliente llega antes
-            de que el anterior salga— y estima las tasas λ, μ, Wq y Ws del
-            modelo M/M/1.
-          </p>
+        <header className="mb-8 max-w-3xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600">Operations Research II</p>
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">Observed single-server queue</h1>
+          <p className="mt-4 text-sm leading-relaxed text-zinc-600">Analyze 40 paired vehicle arrivals and service durations from 16:00 using deterministic FIFO calculations. Compare observations with a separate theoretical M/M/1 model.</p>
         </header>
-
-        {/* Contexto del proyecto */}
-        <section className="mb-10 grid gap-3 rounded-2xl border border-zinc-200 bg-white p-6 sm:grid-cols-3 shadow-sm shadow-zinc-200/40">
-          <ContextItem
-            label="Datos"
-            value="Tiempos de llegada y servicio por cliente"
-          />
-          <ContextItem
-            label="Simulación de colas"
-            value="Resuelve esperas cuando hay concurrencia"
-          />
-          <ContextItem
-            label="Simulación de tablas"
-            value="Genera secuencia y métricas M/M/1"
-          />
-        </section>
-
-        <div className="space-y-6">
-          <InputForm
-            nextClientNumber={nextClientNumber}
-            hasRecords={raws.length > 0}
-            onAdd={handleAdd}
-            onLoadSample={handleLoadSample}
-            onClearAll={handleClearAll}
-          />
-
-          <QueueTable records={processed} onRemove={handleRemove} />
-
-          {metrics ? (
-            <ResultsCard metrics={metrics} />
-          ) : (
-            <section className="rounded-2xl border border-dashed border-zinc-300 bg-white p-8 text-center">
-              <p className="text-sm text-zinc-500">
-                Agregá al menos un cliente para ver los indicadores del sistema.
-              </p>
-            </section>
-          )}
+        <div className="mb-8 flex flex-wrap gap-2 border-b border-zinc-200 pb-3" role="tablist" aria-label="Queue analysis mode">
+          <button type="button" role="tab" aria-selected={activeTab === "observed"} onClick={() => setActiveTab("observed")}
+            className={`rounded-lg px-3.5 py-2 text-sm font-medium ${activeTab === "observed" ? "bg-emerald-600 text-white" : "text-zinc-600 hover:bg-zinc-100"}`}>
+            Observed FIFO
+          </button>
+          <button type="button" role="tab" aria-selected={activeTab === "manual"} onClick={() => setActiveTab("manual")}
+            className={`rounded-lg px-3.5 py-2 text-sm font-medium ${activeTab === "manual" ? "bg-zinc-800 text-white" : "text-zinc-600 hover:bg-zinc-100"}`}>
+            Manual entry (M/M/1)
+          </button>
         </div>
+        {activeTab === "observed" && <ObservedDashboard />}
 
-        <footer className="mt-14 border-t border-zinc-200 pt-6">
-          <div className="flex flex-col gap-3 text-xs text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
-            <p>
-              Cálculo secuencial en
-              <code className="mx-1 rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px] text-zinc-700">
-                page.tsx
-              </code>
-              · métricas en
-              <code className="mx-1 rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px] text-zinc-700">
-                src/lib/queueSimulation.ts
-              </code>
-            </p>
-            <p className="text-zinc-500">
-              <span className="font-medium text-zinc-700">Integrantes:</span>{" "}
-              {TEAM_MEMBERS.join(" · ")}
-            </p>
+        {/* Existing manual-entry calculator */}
+        {activeTab === "manual" && (
+          <div className="space-y-6" lang="es">
+            <section className="mb-6 grid gap-3 rounded-2xl border border-zinc-200 bg-white p-6 sm:grid-cols-3 shadow-sm shadow-zinc-200/40">
+              <ContextItem
+                label="Entrada Manual"
+                value="Carga secuencial de clientes y tiempos de atención"
+              />
+              <ContextItem
+                label="Disciplina"
+                value="FIFO (First In, First Out) en servidor único"
+              />
+              <ContextItem
+                label="Resultados"
+                value="Cálculo directo de esperas y tasas M/M/1"
+              />
+            </section>
+
+            <InputForm
+              nextClientNumber={raws.length + 1}
+              hasRecords={raws.length > 0}
+              onAdd={handleAddManual}
+              onLoadSample={handleLoadSampleManual}
+              onClearAll={handleClearAllManual}
+            />
+
+            <QueueTable records={processedManual} onRemove={handleRemoveManual} />
+
+            {metricsManual ? (
+              <ResultsCard metrics={metricsManual} />
+            ) : (
+              <section className="rounded-2xl border border-dashed border-zinc-300 bg-white p-8 text-center">
+                <p className="text-sm text-zinc-500">
+                  Agregá al menos un cliente para ver los indicadores del sistema.
+                </p>
+              </section>
+            )}
           </div>
+        )}
+
+        <footer className="mt-14 border-t border-zinc-200 pt-6 text-xs text-zinc-500">
+          <p>Operations Research II · Team: {TEAM_MEMBERS.join(" · ")}</p>
         </footer>
       </main>
     </div>

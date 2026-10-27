@@ -1,6 +1,5 @@
 /**
- * Módulo de Lógica Matemática y Estadística para Teoría de Colas (M/M/1)
- * y Simulación Montecarlo - Investigación Operativa (UAGRM)
+ * Queueing calculations for the existing manual-entry calculator (M/M/1).
  */
 
 export interface FieldRecord {
@@ -54,31 +53,6 @@ export interface QueueMetrics {
   
   // Probabilidad de esperar en cola (en M/M/1 es igual a rho)
   Pw: number;
-}
-
-export interface MonteCarloRow {
-  value: number;            // Variable X (ej. 1, 2, 3 min)
-  frequency: number;        // fi
-  probability: number;      // P(x)
-  cumulativeProb: number;   // F(x)
-  intervalMin: number;      // 0 a 99
-  intervalMax: number;      // 0 a 99
-  intervalLabel: string;    // "00 - 19"
-  decimalInterval: string;  // "[0.000, 0.200)"
-}
-
-export interface MonteCarloSimulationRow {
-  clientNumber: number;
-  randomArrival: number;       // R1 (0 a 99 o 0-1)
-  simulatedInterArrival: number;
-  simulatedArrivalTime: number;
-  serviceStartTime: number;
-  randomService: number;       // R2 (0 a 99 o 0-1)
-  simulatedServiceTime: number;
-  departureTime: number;
-  queueTime: number;
-  systemTime: number;
-  serverIdleTime: number;
 }
 
 /**
@@ -310,146 +284,7 @@ export function calculatePn(rho: number, n: number): number {
 }
 
 /**
- * Genera la tabla de frecuencias y números aleatorios Montecarlo
- * a partir de un arreglo de valores continuos redondeados o discretos (ej. minutos enteros)
- */
-export function buildMonteCarloTable(values: number[]): MonteCarloRow[] {
-  if (!values || values.length === 0) return [];
-
-  // Redondear a minutos enteros o clasificar en categorías discretas
-  const roundedValues = values.map((v) => Math.max(1, Math.round(v)));
-
-  // Contar frecuencias
-  const freqMap = new Map<number, number>();
-  for (const v of roundedValues) {
-    freqMap.set(v, (freqMap.get(v) || 0) + 1);
-  }
-
-  // Ordenar valores de menor a mayor
-  const distinctValues = Array.from(freqMap.keys()).sort((a, b) => a - b);
-  const total = roundedValues.length;
-
-  let cumulativeProb = 0;
-  let currentStartInt = 0;
-
-  const rows: MonteCarloRow[] = [];
-
-  for (let i = 0; i < distinctValues.length; i++) {
-    const val = distinctValues[i];
-    const freq = freqMap.get(val)!;
-    const prob = freq / total;
-    cumulativeProb += prob;
-
-    // Asegurar que el último sume exactamente 1.00 por redondeo flotante
-    const cumProbClean = i === distinctValues.length - 1 ? 1.0 : cumulativeProb;
-
-    // Intervalo de Números Aleatorios en rango 00 a 99 (estilo clásico IO UAGRM)
-    // El límite superior se calcula multiplicando cumProb por 100 - 1
-    const endInt = i === distinctValues.length - 1 ? 99 : Math.min(99, Math.round(cumProbClean * 100) - 1);
-    const startInt = currentStartInt;
-
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    const intervalLabel = `${pad(startInt)} - ${pad(endInt)}`;
-
-    const prevDecimal = (currentStartInt / 100).toFixed(2);
-    const nextDecimal = ((endInt + 1) / 100).toFixed(2);
-    const decimalInterval = `[${prevDecimal}, ${nextDecimal})`;
-
-    rows.push({
-      value: val,
-      frequency: freq,
-      probability: prob,
-      cumulativeProb: cumProbClean,
-      intervalMin: startInt,
-      intervalMax: endInt,
-      intervalLabel,
-      decimalInterval,
-    });
-
-    currentStartInt = endInt + 1;
-  }
-
-  return rows;
-}
-
-/**
- * Busca el valor simulado correspondiente a un número aleatorio R (0 a 99)
- */
-export function lookupMonteCarloValue(r: number, table: MonteCarloRow[]): number {
-  if (!table || table.length === 0) return 1;
-  for (const row of table) {
-    if (r >= row.intervalMin && r <= row.intervalMax) {
-      return row.value;
-    }
-  }
-  // Por defecto retornar el último o primero
-  return table[table.length - 1].value;
-}
-
-/**
- * Ejecuta una simulación Montecarlo para N clientes simulados basándose
- * en las tablas de probabilidad empíricas de llegada y servicio
- */
-export function runMonteCarloSimulation(
-  arrivalTable: MonteCarloRow[],
-  serviceTable: MonteCarloRow[],
-  simCount: number = 10,
-  startMinute: number = 480 // 08:00 AM (480 min)
-): MonteCarloSimulationRow[] {
-  if (arrivalTable.length === 0 || serviceTable.length === 0) return [];
-
-  const results: MonteCarloSimulationRow[] = [];
-  let currentClock = startMinute;
-  let serverAvailableAt = startMinute;
-
-  for (let i = 1; i <= simCount; i++) {
-    // Generar números aleatorios entre 0 y 99
-    const r1 = Math.floor(Math.random() * 100);
-    const interArrival = i === 1 ? 0 : lookupMonteCarloValue(r1, arrivalTable);
-
-    currentClock += interArrival;
-    const arrivalTime = currentClock;
-
-    // Hora de inicio de servicio: cuando el servidor se libere o cuando llegue el cliente
-    const serviceStartTime = Math.max(arrivalTime, serverAvailableAt);
-
-    // Ocio del servidor antes de atender a este cliente
-    const serverIdleTime = Math.max(0, serviceStartTime - serverAvailableAt);
-
-    // Tiempo de espera en cola
-    const queueTime = serviceStartTime - arrivalTime;
-
-    // Generar número aleatorio para servicio
-    const r2 = Math.floor(Math.random() * 100);
-    const serviceTime = lookupMonteCarloValue(r2, serviceTable);
-
-    const departureTime = serviceStartTime + serviceTime;
-    const systemTime = departureTime - arrivalTime;
-
-    // El servidor queda libre a la hora de salida
-    serverAvailableAt = departureTime;
-
-    results.push({
-      clientNumber: i,
-      randomArrival: r1,
-      simulatedInterArrival: interArrival,
-      simulatedArrivalTime: arrivalTime,
-      serviceStartTime,
-      randomService: r2,
-      simulatedServiceTime: serviceTime,
-      departureTime,
-      queueTime,
-      systemTime,
-      serverIdleTime,
-    });
-  }
-
-  return results;
-}
-
-/**
- * Datos de muestra realistas de una observación de campo en el
- * Surtidor UAGRM (Santa Cruz de la Sierra) en horario pico (08:00 - 08:35)
+ * An earlier illustrative observation during a peak period (08:00 - 08:35)
  */
 export const SAMPLE_FIELD_DATA: FieldRecord[] = [
   { id: 1,  arrivalTime: '08:00:00', serviceStartTime: '08:00:00', departureTime: '08:02:30' },

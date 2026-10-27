@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Calculadora de Teoría de Colas | Investigación Operativa II",
+  title: "Observed queue analysis | Operations Research II",
   description:
-    "Calculadora y simulador de colas M/M/1 y simulación Montecarlo. Proyecto académico de Investigación Operativa II.",
+    "Analyze observed FIFO arrivals and service times, with a separate theoretical M/M/1 calculator.",
 };
 
 export default function RootLayout({
@@ -24,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className={`${geistSans.variable} ${geistMono.variable} h-full`}>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full`}>
       <body className="min-h-full bg-zinc-50 text-zinc-800 antialiased selection:bg-emerald-100 selection:text-emerald-900">
         {children}
       </body>

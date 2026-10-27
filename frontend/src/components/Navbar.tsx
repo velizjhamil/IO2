@@ -1,5 +1,5 @@
 /**
- * Navbar — barra superior. Server component, sin estado.
+ * Navigation for the observed queue and manual calculator.
  */
 export default function Navbar() {
   return (
@@ -25,30 +25,36 @@ export default function Navbar() {
           </span>
           <div className="flex flex-col leading-tight">
             <span className="text-sm font-semibold tracking-tight text-zinc-900">
-              Investigación Operativa II
+              Queue analysis
             </span>
             <span className="text-xs text-zinc-500">
-              Calculadora · Colas M/M/1
+              Observed FIFO · M/M/1
             </span>
           </div>
         </div>
 
-        <nav className="hidden items-center gap-1 sm:flex">
+        <nav className="hidden items-center gap-1 md:flex text-xs">
           <a
-            href="#datos"
-            className="rounded-md px-3 py-1.5 text-sm text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900"
+            href="#observations"
+            className="rounded-md px-2.5 py-1.5 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900"
           >
-            Datos
+            Observations
           </a>
           <a
-            href="#resultados"
-            className="rounded-md px-3 py-1.5 text-sm text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900"
+            href="#observed-summary"
+            className="rounded-md px-2.5 py-1.5 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900"
           >
-            Resultados
+            Summary
+          </a>
+          <a
+            href="#theoretical"
+            className="rounded-md px-2.5 py-1.5 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900"
+          >
+            M/M/1
           </a>
           <span className="ml-2 inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs text-zinc-500">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            Proyecto académico
+            FIFO / FCFS
           </span>
         </nav>
       </div>
