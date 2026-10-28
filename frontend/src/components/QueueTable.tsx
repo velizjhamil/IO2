@@ -3,35 +3,31 @@
  * Recibe los registros ya PROCESADOS (ProcessedRecord[]) desde el padre.
  * La lógica de cálculo de esperas vive en page.tsx + queueSimulation.ts.
  */
-import type { ProcessedRecord } from "@/lib/queueSimulation";
+import { formatClockFromStart, type ProcessedRecord } from "@/lib/queueSimulation";
 
 type Props = {
   records: ProcessedRecord[];
   onRemove?: (id: number) => void;
+  startTime?: string;
 };
 
 function fmt(min: number, digits = 2): string {
   if (!isFinite(min)) return "—";
-  return min.toFixed(digits);
+  const normalized = Number(min.toPrecision(12));
+  const [coefficient, exponentText] = normalized.toString().toLowerCase().split("e");
+  const coefficientDecimals = coefficient.split(".")[1]?.length ?? 0;
+  const exponent = exponentText ? Number(exponentText) : 0;
+  const requiredDigits = Math.max(0, coefficientDecimals - exponent);
+  return normalized.toFixed(Math.min(12, Math.max(digits, requiredDigits)));
 }
 
-function fmtTime(min: number): string {
-  if (!isFinite(min) || min < 0) return "—";
-  const totalSeconds = Math.round(min * 60);
-  const hours = Math.floor(totalSeconds / 3600) % 24;
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  const pad = (n: number) => n.toString().padStart(2, "0");
-  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
-}
-
-export default function QueueTable({ records, onRemove }: Props) {
+export default function QueueTable({ records, onRemove, startTime = "00:00" }: Props) {
   if (records.length === 0) {
     return (
       <section className="rounded-2xl border border-dashed border-zinc-300 bg-white p-10 text-center">
         <p className="text-sm text-zinc-500">
-          Aún no cargaste clientes. Agregá uno desde el formulario de arriba, o usá
-          <span className="text-emerald-600"> Cargar muestra</span> para ver un ejemplo
+           Aún no hay clientes. Agregue uno desde el formulario de arriba o seleccione
+           <span className="text-emerald-600"> Cargar ejemplo</span> para ver un ejemplo
           de simulación de colas.
         </p>
       </section>
@@ -53,7 +49,7 @@ export default function QueueTable({ records, onRemove }: Props) {
         <table className="w-full min-w-[860px] text-left text-sm">
           <thead>
             <tr className="border-b border-zinc-200 bg-zinc-50/60 text-xs uppercase tracking-wide text-zinc-500">
-              <Th className="w-14">N°</Th>
+               <Th className="w-14">N.º</Th>
               <Th>Hora de llegada</Th>
               <Th align="right">T. espera</Th>
               <Th>Ingreso servidor</Th>
@@ -64,27 +60,27 @@ export default function QueueTable({ records, onRemove }: Props) {
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
-            {records.map((r) => (
+            {records.map((r, index) => (
               <tr
                 key={r.id}
                 className="text-zinc-800 transition hover:bg-zinc-50"
               >
-                <Td className="font-mono text-zinc-400">{r.id}</Td>
-                <Td className="font-mono">{fmtTime(r.arrivalMin)}</Td>
+                <Td className="font-mono text-zinc-400">{index + 1}</Td>
+                <Td className="font-mono">{formatClockFromStart(r.arrivalMin, startTime, true)}</Td>
                 <TdNum highlight={r.queueWaitMin > 0}>
                   {fmt(r.queueWaitMin)} min
                 </TdNum>
-                <Td className="font-mono">{fmtTime(r.serviceStartMin)}</Td>
+                <Td className="font-mono">{formatClockFromStart(r.serviceStartMin, startTime, true)}</Td>
                 <TdNum>{fmt(r.serviceTimeMin)} min</TdNum>
-                <Td className="font-mono">{fmtTime(r.departureMin)}</Td>
+                <Td className="font-mono">{formatClockFromStart(r.departureMin, startTime, true)}</Td>
                 <TdNum>{fmt(r.systemTimeMin)} min</TdNum>
                 {onRemove && (
                   <Td className="text-right">
                     <button
                       type="button"
                       onClick={() => onRemove(r.id)}
-                      aria-label={`Eliminar cliente ${r.id}`}
-                      className="inline-flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 transition hover:bg-rose-50 hover:text-rose-600"
+                      aria-label={`Eliminar cliente ${index + 1}`}
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 transition hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-offset-2"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"

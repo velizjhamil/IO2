@@ -1,6 +1,6 @@
 # AGENTS.md — IO2
 
-Repo para una herramienta web de Investigación Operativa (teoría de colas M/M/1 y simulación Montecarlo), construida en Next.js. Trabajo desde `frontend/`.
+Repositorio de una herramienta web de Investigación Operativa con simulación FIFO determinista de 40 registros observados y análisis M/M/1, construida en Next.js. Trabajar desde `frontend/`.
 
 ## Layout
 
@@ -22,9 +22,9 @@ Repo para una herramienta web de Investigación Operativa (teoría de colas M/M/
 
 ## Dominio
 
-- El código de dominio vive en `frontend/src/lib/queueSimulation.ts`. Ahí están las funciones puras de M/M/1 (tasas λ/μ, ρ, L, Lq, W, Wq, distribución Pn) y la simulación Montecarlo.
-- Datos de muestra en la constante `SAMPLE_FIELD_DATA` del mismo archivo (observación del Surtidor UAGRM, 08:00–08:35).
-- UI actual: scaffold de `create-next-app` sin personalizar — `src/app/page.tsx` es la página de bienvenida por defecto. Si vas a tocar UI, partí de ahí.
+- `frontend/src/lib/observedQueue.ts` contiene los 40 registros observados y el cálculo determinista de la cola FIFO, además de las métricas y el análisis M/M/1 de esos datos.
+- `frontend/src/lib/queueSimulation.ts` conserva las funciones auxiliares de cálculo de colas M/M/1 para los registros ingresados manualmente.
+- La página `frontend/src/app/page.tsx` integra el tablero de observaciones con la entrada manual; la interfaz ya no es la página de bienvenida predeterminada.
 
 ## Convenciones del repo
 

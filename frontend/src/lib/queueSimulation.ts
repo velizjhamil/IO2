@@ -7,6 +7,17 @@ export interface FieldRecord {
   arrivalTime: string;      // "HH:mm" o "HH:mm:ss"
   serviceStartTime: string; // "HH:mm" o "HH:mm:ss"
   departureTime: string;    // "HH:mm" o "HH:mm:ss"
+  arrivalMinute?: number;
+  serviceStartMinute?: number;
+  departureMinute?: number;
+}
+
+export function parseDecimalInput(value: string): number | null {
+  const normalized = value.trim();
+  if (!/^[+-]?(?:\d+(?:[.,]\d+)?|[.,]\d+)(?:[eE][+-]?\d+)?$/.test(normalized)) return null;
+
+  const parsed = Number(normalized.replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 export interface ProcessedRecord extends FieldRecord {
@@ -71,14 +82,42 @@ export function timeStringToMinutes(timeStr: string): number {
  * Convierte minutos decimales a formato de hora "HH:MM:SS"
  */
 export function minutesToTimeString(totalMinutes: number): string {
-  if (isNaN(totalMinutes) || totalMinutes < 0) return '00:00:00';
+  if (!Number.isFinite(totalMinutes) || totalMinutes < 0) return '00:00:00';
   const totalSeconds = Math.round(totalMinutes * 60);
-  const hours = Math.floor(totalSeconds / 3600) % 24;
+  const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
 
   const pad = (n: number) => n.toString().padStart(2, '0');
   return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+}
+
+/**
+ * Convierte minutos transcurridos desde una hora de inicio a una hora de reloj.
+ * Acepta "HH:mm" o "HH:mm:ss" y agrega el desplazamiento de día cuando corresponde.
+ */
+export function formatClockFromStart(
+  minutesFromStart: number,
+  startTime: string,
+  withSeconds = false
+): string {
+  const match = /^([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/.exec(startTime.trim());
+  if (!match || !Number.isFinite(minutesFromStart) || minutesFromStart < 0) {
+    return "No disponible";
+  }
+
+  const startOffset =
+    Number(match[1]) * 60 +
+    Number(match[2]) +
+    (match[3] ? Number(match[3]) / 60 : 0);
+  const absoluteMinutes = startOffset + minutesFromStart;
+  const dayOffset = Math.floor(absoluteMinutes / (24 * 60));
+  const timeOfDay = absoluteMinutes - dayOffset * 24 * 60;
+  const formatted = minutesToTimeString(timeOfDay);
+  const time = withSeconds ? formatted : formatted.slice(0, 5);
+
+  if (dayOffset === 0) return time;
+  return `${time} (+${dayOffset} ${dayOffset === 1 ? "día" : "días"})`;
 }
 
 /**
@@ -106,20 +145,27 @@ export function formatDec(num: number, decimals: number = 4): string {
 export function processFieldRecords(records: FieldRecord[]): ProcessedRecord[] {
   if (!records || records.length === 0) return [];
 
-  // Ordenar cronológicamente por hora de llegada para consistencia operativa
+  const arrivalMinutes = (record: FieldRecord) =>
+    record.arrivalMinute ?? timeStringToMinutes(record.arrivalTime);
+  const serviceStartMinutes = (record: FieldRecord) =>
+    record.serviceStartMinute ?? timeStringToMinutes(record.serviceStartTime);
+  const departureMinutes = (record: FieldRecord) =>
+    record.departureMinute ?? timeStringToMinutes(record.departureTime);
+
+  // Ordenar por llegada y conservar el orden de entrada cuando las llegadas coinciden.
   const sorted = [...records].sort((a, b) => {
-    return timeStringToMinutes(a.arrivalTime) - timeStringToMinutes(b.arrivalTime);
+    return arrivalMinutes(a) - arrivalMinutes(b) || a.id - b.id;
   });
 
   return sorted.map((rec, index) => {
-    const arrMin = timeStringToMinutes(rec.arrivalTime);
-    const startMin = timeStringToMinutes(rec.serviceStartTime);
-    const depMin = timeStringToMinutes(rec.departureTime);
+    const arrMin = arrivalMinutes(rec);
+    const startMin = serviceStartMinutes(rec);
+    const depMin = departureMinutes(rec);
 
     // Tiempo entre llegadas
     let interArrival = 0;
     if (index > 0) {
-      const prevArrMin = timeStringToMinutes(sorted[index - 1].arrivalTime);
+      const prevArrMin = arrivalMinutes(sorted[index - 1]);
       interArrival = Math.max(0, arrMin - prevArrMin);
     } else {
       interArrival = 0; // Primer cliente registrado
@@ -139,7 +185,7 @@ export function processFieldRecords(records: FieldRecord[]): ProcessedRecord[] {
     if (index === 0) {
       serverIdle = 0;
     } else {
-      const prevDepMin = timeStringToMinutes(sorted[index - 1].departureTime);
+      const prevDepMin = departureMinutes(sorted[index - 1]);
       serverIdle = Math.max(0, startMin - prevDepMin);
     }
 

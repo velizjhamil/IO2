@@ -1,7 +1,7 @@
 /**
  * Navigation for the observed queue and manual calculator.
  */
-export default function Navbar() {
+export default function Navbar({ activeTab }: { activeTab: "observed" | "manual" }) {
   return (
     <header className="sticky top-0 z-30 border-b border-zinc-200 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
@@ -25,36 +25,36 @@ export default function Navbar() {
           </span>
           <div className="flex flex-col leading-tight">
             <span className="text-sm font-semibold tracking-tight text-zinc-900">
-              Queue analysis
+              Análisis de colas
             </span>
             <span className="text-xs text-zinc-500">
-              Observed FIFO · M/M/1
+              {activeTab === "observed" ? "Datos de ejemplo · M/M/1" : "Entrada manual · M/M/1"}
             </span>
           </div>
         </div>
 
         <nav className="hidden items-center gap-1 md:flex text-xs">
           <a
-            href="#observations"
-            className="rounded-md px-2.5 py-1.5 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900"
+            href={activeTab === "observed" ? "#observations" : "#datos"}
+            className="rounded-md px-2.5 py-1.5 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
           >
-            Observations
+            {activeTab === "observed" ? "Observaciones" : "Entrada manual"}
           </a>
           <a
-            href="#observed-summary"
-            className="rounded-md px-2.5 py-1.5 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900"
+            href={activeTab === "observed" ? "#observed-summary" : "#resultados"}
+            className="rounded-md px-2.5 py-1.5 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
           >
-            Summary
+            {activeTab === "observed" ? "Resumen" : "Resultados"}
           </a>
-          <a
+          {activeTab === "observed" && <a
             href="#theoretical"
-            className="rounded-md px-2.5 py-1.5 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900"
+            className="rounded-md px-2.5 py-1.5 text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
           >
             M/M/1
-          </a>
+          </a>}
           <span className="ml-2 inline-flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs text-zinc-500">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            FIFO / FCFS
+            Atención por orden de llegada
           </span>
         </nav>
       </div>
